@@ -11,13 +11,14 @@ import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.List;
+
+import static net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock;
 
 @Mod("easyharvest")
 public class EasyHarvest {
@@ -47,7 +48,7 @@ public class EasyHarvest {
     }
 
     @SubscribeEvent
-    public void onPlayerUse(PlayerInteractEvent.RightClickBlock event) {
+    public void onPlayerRightClick(RightClickBlock event) {
         PlayerEntity player = event.getPlayer();
         BlockPos pos = event.getPos();
         World world = player.level;
@@ -76,16 +77,20 @@ public class EasyHarvest {
         List<ItemStack> drops = state.getDrops(context);
         BlockState newState = blockClicked.defaultBlockState();
 
+        // Make the block face the player to make it look like we actually replanted it
         if (state.getProperties().stream().anyMatch(p -> p.equals(HorizontalBlock.FACING))) {
             newState = newState.setValue(HorizontalBlock.FACING, state.getValue(HorizontalBlock.FACING));
         }
 
+        // Don't actually destroy the current block, just make it a baby again,
         if (state.getProperties().stream().anyMatch(p -> p.equals(CropsBlock.AGE))) {
             newState = state.setValue(CropsBlock.AGE, 0);
         }
 
+        // Commit block updates to the world
         world.setBlockAndUpdate(pos, newState);
 
+        // Drop everything that would've dropped had you left-clicked this block
         for (ItemStack stack : drops) {
             InventoryHelper.dropItemStack(world, pos.getX(), pos.getY(), pos.getZ(), stack);
         }
